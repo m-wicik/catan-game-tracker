@@ -1,0 +1,105 @@
+body {
+    background-color: black;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
+.navbar {
+    position: fixed;
+    bottom: 12px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.navbar button {
+    background-color: black;
+    border-color: white;
+    border-style: solid;
+    border-width: 3px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 50px;
+    height: 50px;
+    color: white;
+}
+
+.navbar button i {
+    font-size: 24px;
+}
+
+.navbar button:hover {
+  background: #404040;
+}
+
+.form_section h2 {
+    font-size: 24px;
+    color: white;
+}
+
+#record_type_buttons button {
+    background-color: white;
+    border-color: black;
+    border-style: solid;
+    border-width: 3px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 32%;
+    height: 30px;
+    color: black;
+}
+
+#vp_table button {
+    background-color: white;
+    border-color: black;
+    border-style: solid;
+    border-width: 3px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 25px;
+    height: 25px;
+    color: black;
+}
+
+#vp_table input {
+    background-color: white;
+    border-style: none;
+    font-size: 14px;
+    cursor: pointer;
+    width: 40px;
+    color: black;
+    text-align: center;
+}
+
+#vp_table input::-webkit-outer-spin-button,
+#vp_table input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#player_input {
+    background-color: white;
+    border-style: none;
+    font-size: 14px;
+    cursor: pointer;
+    color: black;
+}
+
+#button_create_record {
+    background-color: white; 
+    border-color: black; 
+    border-style: solid; 
+    border-width: 3px; 
+    border-radius: 8px; 
+    font-size: 16px; 
+    cursor: pointer; 
+    width: 140px; 
+    height: 60px; 
+    color: black;
+    margin-top: 20px;
+}
