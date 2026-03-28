@@ -80,7 +80,7 @@ async function create_record() {
 }
 
 async function load_games() {
-    if (!auth.currentUser) return [];
+    if(!auth.currentUser) return [];
 
     const q = query(
         collection(db, "games"),
@@ -94,8 +94,8 @@ async function load_games() {
 
     // Sort by game date (newest first)
     games.sort((a, b) => {
-        const dateA = a.date ? new Date(a.date) : new Date(a.created_at);
-        const dateB = b.date ? new Date(b.date) : new Date(b.created_at);
+        const dateA = new Date(a.date.seconds * 1000);
+        const dateB = new Date(b.date.seconds * 1000);
         return dateB - dateA;
     });
 
@@ -371,7 +371,7 @@ function update_screen() {
         gamesList.style.color = "white";
 
         load_games().then(games => {
-            if (games.length == 0) {
+            if(games.length == 0) {
                 gamesList.innerHTML = "<p>You haven't recorded any games yet!</p>";
                 return;
             }
