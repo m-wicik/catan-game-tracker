@@ -1,3 +1,20 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, where, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAi7d-DvIKT-WMnCiCksUrfx1Zaw1pmXX8",
+    authDomain: "catan-game-tracker.firebaseapp.com",
+    projectId: "catan-game-tracker",
+    storageBucket: "catan-game-tracker.firebasestorage.app",
+    messagingSenderId: "388660545030",
+    appId: "1:388660545030:web:ba397953d8fa538943a587"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 4;
 const MIN_VP = 2;
@@ -32,9 +49,67 @@ const playerVPs = {};
 let current_page = "home";
 let record_type = "basic_entry";
 
+onAuthStateChanged(auth, (user) => {
+    if(user) update_screen();
+    else show_login_screen();
+});
+
 function button_clicked(button_id) {
     current_page = button_id;
     update_screen();
+}
+
+async function create_record() {
+    const user = auth.currentUser;
+    const date = new Date(document.getElementById("game_date").value);
+    try {
+        await addDoc(collection(db, "games"), {
+            user_id: user.uid,
+            players: selected_players,
+            vp: playerVPs,
+            record_type: record_type,
+            date: date,
+            created_at: new Date()
+        });
+        console.log("Game saved");
+        current_page = "games";
+        update_screen();
+    } catch (e) {
+        console.error("ERROR:", e);
+    }
+}
+
+async function load_games() {
+    if (!auth.currentUser) return [];
+
+    const q = query(
+        collection(db, "games"),
+        where("user_id", "==", auth.currentUser.uid)
+    );
+
+    const snapshot = await getDocs(q);
+
+    // Map to array of games
+    const games = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Sort by game date (newest first)
+    games.sort((a, b) => {
+        const dateA = a.date ? new Date(a.date) : new Date(a.created_at);
+        const dateB = b.date ? new Date(b.date) : new Date(b.created_at);
+        return dateB - dateA;
+    });
+
+    return games;
+}
+
+function login(email, password) {
+    signInWithEmailAndPassword(auth, email, password)
+        .then(userCredential => {
+            console.log("Logged in:", userCredential.user.uid);
+        })
+        .catch(error => {
+            console.error(error.message);
+        });
 }
 
 function render_record_fields() {
@@ -42,9 +117,13 @@ function render_record_fields() {
     if(record_type == "basic_entry") {
         fields.innerHTML = `
             <div class="form_section">
+                <h2>Date</h3>
+                <input class="user_input" type="date" id="game_date">
+            </div>
+            <div class="form_section">
                 <h2>Players</h3>
                 <div id="selected_players" style="color: white"></div>
-                <input id="player_input" list="player_suggestions"></input>
+                <input class="user_input" id="player_input" list="player_suggestions"></input>
                 <datalist id="player_suggestions"></datalist>
             </div>
             <div class="form_section">
@@ -55,6 +134,16 @@ function render_record_fields() {
             </div>
             <button id="button_create_record" style="display: none">Create Record</button>
         `;
+        const date_input = document.getElementById("game_date");
+        date_input.value = new Date().toISOString().split("T")[0];
+        date_input.addEventListener("change", () => {
+            render_selected_players();
+            render_victory_points();
+        });
+        
+        const create_record_button = document.getElementById("button_create_record");
+        create_record_button.onclick = create_record;
+        
         const datalist = document.getElementById("player_suggestions");
         datalist.innerHTML = "";
         for(const name of previous_players) {
@@ -120,8 +209,9 @@ function render_selected_players() {
 
         container.appendChild(tag);
     }
+    const date_input = document.getElementById("game_date");
     const create_record_button = document.getElementById("button_create_record");
-    create_record_button.style.display = (num_selected >= MIN_PLAYERS && validate_VPs()) ? "inline-block" : "none";
+    create_record_button.style.display = (date_input.value.trim() != "" && selected_players.length >= MIN_PLAYERS && validate_VPs()) ? "inline-block" : "none";
 }
 
 function render_victory_points() {
@@ -210,7 +300,50 @@ function set_record_type(button_id) {
     render_record_fields();
 }
 
+function show_login_screen() {
+    document.getElementById("page_name").innerText = "Welcome";
+
+    const content = document.getElementById("page_content");
+
+    content.innerHTML = `
+        <div class="form_section">
+            <h2>Log In / Sign Up</h2>
+
+            <input class="user_input" id="email_input" placeholder="Email"><br><br>
+            <input class="user_input" id="password_input" type="password" placeholder="Password"><br><br>
+
+            <div style="display: flex">
+                <button class="halfwidth_button" style="height:50px" id="login_button">Log In</button>
+                <button class="halfwidth_button" style="height:50px" id="signup_button">Create Account</button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById("login_button").onclick = () => {
+        const email = document.getElementById("email_input").value;
+        const password = document.getElementById("password_input").value;
+        login(email, password);
+    };
+
+    document.getElementById("signup_button").onclick = () => {
+        const email = document.getElementById("email_input").value;
+        const password = document.getElementById("password_input").value;
+        signup(email, password);
+    };
+}
+
+function signup(email, password) {
+    createUserWithEmailAndPassword(auth, email, password)
+        .then(userCredential => {
+            console.log("User created:", userCredential.user.uid);
+        })
+        .catch(error => {
+            console.error(error.message);
+        });
+}
+
 function update_screen() {
+    document.getElementById("button_navigation").style.display = "flex";
     const title = document.getElementById("page_name");
     title.innerText = page_titles.get(current_page);
     const content = document.getElementById("page_content");
@@ -220,9 +353,9 @@ function update_screen() {
             <div class="form_section">
                 <h2>Record Type</h2>
                 <div id="record_type_buttons">
-                    <button id="button_basic_entry">Basic</button>
-                    <button id="button_advanced_entry">Advanced</button>
-                    <button id="button_full_board_entry">Full Board</button>
+                    <button class="thirdwidth_button" id="button_basic_entry">Basic</button>
+                    <button class="thirdwidth_button" id="button_advanced_entry">Advanced</button>
+                    <button class="thirdwidth_button" id="button_full_board_entry">Full Board</button>
                 </div>
             </div>
             <div id="record_fields"></div>
@@ -232,6 +365,45 @@ function update_screen() {
             button_element.onclick = () => set_record_type(button_id);
         }
         render_record_fields();
+    } else if (current_page === "games") {
+        content.innerHTML = "<div id='games_list'></div>";
+        const gamesList = document.getElementById("games_list");
+        gamesList.style.color = "white";
+
+        load_games().then(games => {
+            if (games.length == 0) {
+                gamesList.innerHTML = "<p>You haven't recorded any games yet!</p>";
+                return;
+            }
+
+            games.forEach(game => {
+                const gameDiv = document.createElement("div");
+                gameDiv.classList.add("game_item");
+
+                const vpEntries = Object.entries(game.vp);
+                const winner = vpEntries.reduce((max, curr) => (curr[1] > max[1] ? curr : max))[0];
+
+                gameDiv.innerHTML = `
+                    <strong>Date:</strong> ${new Date(game.date.seconds * 1000).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'})}<br>
+                    <strong>Players:</strong> ${game.players.join(", ")}<br>
+                    <strong>Winner:</strong> ${winner}
+                    <i class="fa-solid fa-trash delete_game_icon"></i>
+                `;
+                const deleteIcon = gameDiv.querySelector(".delete_game_icon");
+                deleteIcon.onclick = async () => {
+                    const confirmed = confirm(`Are you sure you want to delete this game record?`);
+                    if (!confirmed) return;
+                    try {
+                        await deleteDoc(doc(db, "games", game.id));
+                        console.log("Game deleted");
+                        gameDiv.remove();
+                    } catch (e) {
+                        console.error("Delete error:", e);
+                    }
+                };
+                gamesList.appendChild(gameDiv);
+            });
+        });
     } else {
         content.innerHTML = "";
     }
