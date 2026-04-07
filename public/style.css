@@ -220,3 +220,13 @@ body {
 #side_pane_content {
     margin-top: 40px;
 }
+
+#stats_container {
+    max-width: 420px;
+    margin: 0 auto;
+    color: white;
+}
+
+#stats_container canvas {
+    margin-bottom: 24px;
+}
