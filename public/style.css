@@ -116,6 +116,12 @@ body {
     margin-top: 20px;
 }
 
+#games_list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 .game_item {
     position: relative;
     padding-right: 30px;
@@ -125,6 +131,7 @@ body {
     border-radius: 5px;
     background-color: #222;
     color: white;
+    width: 400px;
 }
 
 .delete_game_icon {
@@ -135,4 +142,81 @@ body {
     cursor: pointer;
     color: white;
     font-size: 18px;
+}
+
+.edit_game_icon {
+    position: absolute;
+    top: 50%;
+    right: 35px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: white;
+    font-size: 18px;
+}
+
+#app_container {
+    width: 100%;
+    max-width: 600px;
+    padding-bottom: 60px;
+    box-sizing: border-box;
+}
+
+#page_content {
+    overflow-y: auto;
+}
+
+/* Overlay */
+#side_pane_overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 99;
+}
+
+/* Side pane */
+#side_pane {
+    position: fixed;
+    top: 0;
+    right: -360px;
+    width: 360px;
+    height: 100%;
+    background: #111;
+    color: white;
+    padding: 16px;
+    box-sizing: border-box;
+    transition: right 0.25s ease;
+    z-index: 100;
+}
+
+/* Open state */
+#side_pane.open {
+    right: 0;
+}
+
+#side_pane_overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Close button */
+#close_side_pane {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+/* Content spacing */
+#side_pane_content {
+    margin-top: 40px;
 }

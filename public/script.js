@@ -42,6 +42,9 @@ page_titles.set("new", "Create New Game Record");
 page_titles.set("games", "My Played Games");
 page_titles.set("stats", "My Stats");
 
+document.getElementById("close_side_pane").onclick = close_side_pane;
+document.getElementById("side_pane_overlay").onclick = close_side_pane;
+
 const previous_players = new Set();
 let selected_players = [];
 const playerVPs = {};
@@ -57,6 +60,11 @@ onAuthStateChanged(auth, (user) => {
 function button_clicked(button_id) {
     current_page = button_id;
     update_screen();
+}
+
+function close_side_pane() {
+    document.getElementById("side_pane").classList.remove("open");
+    document.getElementById("side_pane_overlay").classList.remove("open");
 }
 
 async function create_record() {
@@ -110,6 +118,36 @@ function login(email, password) {
         .catch(error => {
             console.error(error.message);
         });
+}
+
+function open_side_pane(game) {
+    const pane = document.getElementById("side_pane");
+    const overlay = document.getElementById("side_pane_overlay");
+    const content = document.getElementById("side_pane_content");
+
+    content.innerHTML = `
+        <h2>Game Details</h2>
+
+        <p><strong>Date:</strong><br>
+        ${new Date(game.date.seconds * 1000).toLocaleDateString(
+            "en-US",
+            { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }
+        )}</p>
+
+        <p><strong>Players:</strong></p>
+        <ol>           
+            ${game.players
+                .map(player => {
+                    const vp = game.vp[player];
+                    return `<li>${player}: ${vp} VP</li>`;
+                })
+                .join("")
+            }
+        </ol>
+    `;
+
+    pane.classList.add("open");
+    overlay.classList.add("open");
 }
 
 function render_record_fields() {
@@ -378,19 +416,37 @@ function update_screen() {
 
             games.forEach(game => {
                 const gameDiv = document.createElement("div");
-                gameDiv.classList.add("game_item");
+                gameDiv.classList.add("game_item");             
+                gameDiv.onclick = () => {open_side_pane(game);};
 
                 const vpEntries = Object.entries(game.vp);
                 const winner = vpEntries.reduce((max, curr) => (curr[1] > max[1] ? curr : max))[0];
-
+                const playersHtml = game.players
+                    .map(player =>
+                        player === winner
+                            ? `<span style="color: #4CAF50; font-weight: bold;">${player}</span>`
+                            : `<span style="color: white;">${player}</span>`
+                    )
+                    .join(", ");
+                
                 gameDiv.innerHTML = `
-                    <strong>Date:</strong> ${new Date(game.date.seconds * 1000).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'})}<br>
-                    <strong>Players:</strong> ${game.players.join(", ")}<br>
-                    <strong>Winner:</strong> ${winner}
+                    <strong>${new Date(game.date.seconds * 1000).toLocaleDateString(
+                        'en-US',
+                        { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }
+                    )}:</strong> ${playersHtml}<br>
+                    <i class="fa-solid fa-pen-to-square edit_game_icon"></i>
                     <i class="fa-solid fa-trash delete_game_icon"></i>
                 `;
+
+                const editIcon = gameDiv.querySelector(".edit_game_icon");          
+                editIcon.onclick = (e) => {
+                    e.stopPropagation();
+                    console.log("Edit game:", game.id);
+                };
+
                 const deleteIcon = gameDiv.querySelector(".delete_game_icon");
-                deleteIcon.onclick = async () => {
+                deleteIcon.onclick = async (e) => {
+                    e.stopPropagation();
                     const confirmed = confirm(`Are you sure you want to delete this game record?`);
                     if (!confirmed) return;
                     try {
