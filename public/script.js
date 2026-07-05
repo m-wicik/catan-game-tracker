@@ -1,15 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, query, where, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyAi7d-DvIKT-WMnCiCksUrfx1Zaw1pmXX8",
-    authDomain: "catan-game-tracker.firebaseapp.com",
-    projectId: "catan-game-tracker",
-    storageBucket: "catan-game-tracker.firebasestorage.app",
-    messagingSenderId: "388660545030",
-    appId: "1:388660545030:web:ba397953d8fa538943a587"
-};
+import { firebaseConfig } from "../firebaseConfig.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
