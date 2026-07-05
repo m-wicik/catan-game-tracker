@@ -34,6 +34,9 @@ page_titles.set("new", "Create New Game Record");
 page_titles.set("games", "My Played Games");
 page_titles.set("stats", "My Stats");
 
+document.getElementById("close_side_pane").onclick = close_side_pane;
+document.getElementById("side_pane_overlay").onclick = close_side_pane;
+
 const previous_players = new Set();
 let selected_players = [];
 const playerVPs = {};
@@ -49,6 +52,11 @@ onAuthStateChanged(auth, (user) => {
 function button_clicked(button_id) {
     current_page = button_id;
     update_screen();
+}
+
+function close_side_pane() {
+    document.getElementById("side_pane").classList.remove("open");
+    document.getElementById("side_pane_overlay").classList.remove("open");
 }
 
 async function create_record() {
@@ -102,6 +110,64 @@ function login(email, password) {
         .catch(error => {
             console.error(error.message);
         });
+}
+
+function open_side_pane(game) {
+    const pane = document.getElementById("side_pane");
+    const overlay = document.getElementById("side_pane_overlay");
+    const content = document.getElementById("side_pane_content");
+
+    content.innerHTML = `
+        <h2>Game Details</h2>
+
+        <p><strong>Date:</strong><br>
+        ${new Date(game.date.seconds * 1000).toLocaleDateString(
+            "en-US",
+            { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }
+        )}</p>
+
+        <p><strong>Players:</strong></p>
+        <ol>           
+            ${game.players
+                .map(player => {
+                    const vp = game.vp[player];
+                    return `<li>${player}: ${vp} VP</li>`;
+                })
+                .join("")
+            }
+        </ol>
+    `;
+
+    pane.classList.add("open");
+    overlay.classList.add("open");
+}
+
+function render_avg_vp_chart(players, avgVPs) {
+    const ctx = document.getElementById("avg_vp_chart");
+
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: players,
+            datasets: [{
+                label: "Average Victory Points",
+                data: avgVPs,
+                backgroundColor: "#2196F3"
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: "Average VP"
+                    }
+                }
+            }
+        }
+    });
 }
 
 function render_record_fields() {
@@ -204,6 +270,78 @@ function render_selected_players() {
     const date_input = document.getElementById("game_date");
     const create_record_button = document.getElementById("button_create_record");
     create_record_button.style.display = (date_input.value.trim() != "" && selected_players.length >= MIN_PLAYERS && validate_VPs()) ? "inline-block" : "none";
+}
+
+function render_stats(games) {
+    if (games.length === 0) return;
+
+    const playerStats = {};
+    const playerAppearances = {};
+
+    games.forEach(game => {
+        const vpEntries = Object.entries(game.vp);
+        const winner = vpEntries.reduce((a, b) => b[1] > a[1] ? b : a)[0];
+
+        game.players.forEach(player => {
+            if (!playerStats[player]) {
+                playerStats[player] = { wins: 0, totalVP: 0 };
+                playerAppearances[player] = 0;
+            }
+
+            playerAppearances[player]++;
+            playerStats[player].totalVP += game.vp[player] ?? 0;
+
+            if (player === winner) {
+                playerStats[player].wins++;
+            }
+        });
+    });
+
+    // Top 5 most recurring players
+    const topPlayers = Object.entries(playerAppearances)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([player]) => player);
+
+    const winRates = topPlayers.map(player =>
+        (playerStats[player].wins / playerAppearances[player]) * 100
+    );
+
+    const avgVPs = topPlayers.map(player =>
+        playerStats[player].totalVP / playerAppearances[player]
+    );
+
+    render_win_rate_chart(topPlayers, winRates);
+    render_avg_vp_chart(topPlayers, avgVPs);
+}
+
+function render_win_rate_chart(players, winRates) {
+    const ctx = document.getElementById("win_rate_chart");
+
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: players,
+            datasets: [{
+                label: "Win Rate (%)",
+                data: winRates,
+                backgroundColor: "#4CAF50"
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    min: 0,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: "Win Rate (%)"
+                    }
+                }
+            }
+        }
+    });
 }
 
 function render_victory_points() {
@@ -357,7 +495,7 @@ function update_screen() {
             button_element.onclick = () => set_record_type(button_id);
         }
         render_record_fields();
-    } else if (current_page === "games") {
+    } else if (current_page == "games") {
         content.innerHTML = "<div id='games_list'></div>";
         const gamesList = document.getElementById("games_list");
         gamesList.style.color = "white";
@@ -370,19 +508,37 @@ function update_screen() {
 
             games.forEach(game => {
                 const gameDiv = document.createElement("div");
-                gameDiv.classList.add("game_item");
+                gameDiv.classList.add("game_item");             
+                gameDiv.onclick = () => {open_side_pane(game);};
 
                 const vpEntries = Object.entries(game.vp);
                 const winner = vpEntries.reduce((max, curr) => (curr[1] > max[1] ? curr : max))[0];
-
+                const playersHtml = game.players
+                    .map(player =>
+                        player === winner
+                            ? `<span style="color: #4CAF50; font-weight: bold;">${player}</span>`
+                            : `<span style="color: white;">${player}</span>`
+                    )
+                    .join(", ");
+                
                 gameDiv.innerHTML = `
-                    <strong>Date:</strong> ${new Date(game.date.seconds * 1000).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'})}<br>
-                    <strong>Players:</strong> ${game.players.join(", ")}<br>
-                    <strong>Winner:</strong> ${winner}
+                    <strong>${new Date(game.date.seconds * 1000).toLocaleDateString(
+                        'en-US',
+                        { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }
+                    )}:</strong> ${playersHtml}<br>
+                    <i class="fa-solid fa-pen-to-square edit_game_icon"></i>
                     <i class="fa-solid fa-trash delete_game_icon"></i>
                 `;
+
+                const editIcon = gameDiv.querySelector(".edit_game_icon");          
+                editIcon.onclick = (e) => {
+                    e.stopPropagation();
+                    console.log("Edit game:", game.id);
+                };
+
                 const deleteIcon = gameDiv.querySelector(".delete_game_icon");
-                deleteIcon.onclick = async () => {
+                deleteIcon.onclick = async (e) => {
+                    e.stopPropagation();
                     const confirmed = confirm(`Are you sure you want to delete this game record?`);
                     if (!confirmed) return;
                     try {
@@ -395,6 +551,19 @@ function update_screen() {
                 };
                 gamesList.appendChild(gameDiv);
             });
+        });
+    } else if(current_page == "stats") {
+        content.innerHTML = `
+            <div id="stats_container">
+                <h2>Top Players</h2>
+
+                <canvas id="win_rate_chart"></canvas>
+                <canvas id="avg_vp_chart"></canvas>
+            </div>
+        `;
+
+        load_games().then(games => {
+            render_stats(games);
         });
     } else {
         content.innerHTML = "";
