@@ -526,15 +526,8 @@ function update_screen() {
                         'en-US',
                         { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }
                     )}:</strong> ${playersHtml}<br>
-                    <i class="fa-solid fa-pen-to-square edit_game_icon"></i>
                     <i class="fa-solid fa-trash delete_game_icon"></i>
                 `;
-
-                const editIcon = gameDiv.querySelector(".edit_game_icon");          
-                editIcon.onclick = (e) => {
-                    e.stopPropagation();
-                    console.log("Edit game:", game.id);
-                };
 
                 const deleteIcon = gameDiv.querySelector(".delete_game_icon");
                 deleteIcon.onclick = async (e) => {
