@@ -44,6 +44,8 @@ const playerVPs = {};
 let current_page = "home";
 let record_type = "basic_entry";
 
+update_screen();
+
 onAuthStateChanged(auth, (user) => {
     if(user) update_screen();
     else show_login_screen();
